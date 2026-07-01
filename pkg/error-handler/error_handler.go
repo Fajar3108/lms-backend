@@ -16,7 +16,6 @@ func GlobalErrorHandler(ctx fiber.Ctx, err error) error {
 	case *ValidationError:
 		res = helpers.NewAPIResponse(fiber.StatusBadRequest, err.Error()).
 			Error("VALIDATION_ERROR", e.Details, nil)
-		return ctx.Status(res.StatusCode).JSON(res)
 	}
 
 	var appErr *app_error.AppError
@@ -25,7 +24,6 @@ func GlobalErrorHandler(ctx fiber.Ctx, err error) error {
 		statusCode := statusFromKind(appErr.Kind)
 		res = helpers.NewAPIResponse(statusCode, appErr.Message).
 			Error(appErr.Code, nil, nil)
-		return ctx.Status(res.StatusCode).JSON(res)
 	}
 
 	var fiberError *fiber.Error
@@ -33,11 +31,12 @@ func GlobalErrorHandler(ctx fiber.Ctx, err error) error {
 	if errors.As(err, &fiberError) {
 		res = helpers.NewAPIResponse(fiberError.Code, fiberError.Message).
 			Error("HTTP_ERROR", nil, nil)
-		return ctx.Status(res.StatusCode).JSON(res)
 	}
 
-	res = helpers.NewAPIResponse(fiber.StatusInternalServerError, "internal server error").
-		Error("INTERNAL_SERVER_ERROR", nil, err)
+	if res == nil {
+		res = helpers.NewAPIResponse(fiber.StatusInternalServerError, "internal server error").
+			Error("INTERNAL_SERVER_ERROR", nil, err)
+	}
 
 	slog.Error(
 		"request failed",

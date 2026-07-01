@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var (
@@ -31,23 +32,25 @@ func NewJWTManager(secretKey string, accessExpHours int, refreshExpDays int) *JW
 	}
 }
 
-func (m *JWTManager) GenerateAccessToken(userID string) (string, time.Time, error) {
+func (m *JWTManager) GenerateAccessToken(userID string) (string, string, time.Time, error) {
+	tokenID := uuid.NewString()
 	expiration := time.Now().Add(time.Duration(m.accessExpHours) * time.Hour)
 	claims := &UserClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiration),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:        tokenID,
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString(m.secretKey)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to sign access token: %w", err)
+		return "", "", time.Time{}, fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	return tokenStr, expiration, nil
+	return tokenStr, tokenID, expiration, nil
 }
 
 func (m *JWTManager) GenerateRefreshToken(userID string) (string, time.Time, error) {

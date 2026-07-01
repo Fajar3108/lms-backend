@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -30,6 +31,15 @@ func main() {
 		log.Fatalf("Fatal: migration failed: %v", err)
 	}
 
+	ctx := context.Background()
+	redisClient, err := database.ConnectRedis(ctx, cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Fatal: failed to initialize Redis: %v", err)
+	}
+	defer func() {
+		_ = redisClient.Close()
+	}()
+
 	validator := validation.NewValidator()
 
 	app := fiber.New(fiber.Config{
@@ -37,7 +47,7 @@ func main() {
 		StructValidator: validator,
 	})
 
-	router.SetupRoutes(app, cfg, db, validator)
+	router.SetupRoutes(app, cfg, db, redisClient, validator)
 
 	port := os.Getenv("PORT")
 	if port == "" {

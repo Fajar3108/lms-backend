@@ -2,20 +2,23 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/fajar3108/lms-backend/internal/user"
+	"github.com/fajar3108/lms-backend/pkg/redis"
 	"gorm.io/gorm"
 )
 
 type AuthAction struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis redis.RedisClient
 }
 
-func NewAuthAction(db *gorm.DB) *AuthAction {
-	return &AuthAction{db: db}
+func NewAuthAction(db *gorm.DB, redisClient redis.RedisClient) *AuthAction {
+	return &AuthAction{db: db, redis: redisClient}
 }
 
 func (a *AuthAction) CreateRefreshToken(ctx context.Context, userID, token string, expiresAt time.Time) (*user.RefreshToken, error) {
@@ -115,6 +118,70 @@ func (a *AuthAction) RevokeAllUserRefreshTokens(ctx context.Context, userID stri
 
 	if err := tx.Error; err != nil {
 		return fmt.Errorf("%s: %w", operation, err)
+	}
+
+	return nil
+}
+
+func (a *AuthAction) RevokeRefreshToken(ctx context.Context, token string) error {
+	const operation = "auth.action.revoke_refresh_token"
+
+	tx := a.db.WithContext(ctx).
+		Model(&user.RefreshToken{}).
+		Where("token = ?", token).
+		Update("is_revoked", true)
+
+	if err := tx.Error; err != nil {
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+
+	return nil
+}
+
+func (a *AuthAction) CreateSession(ctx context.Context, session *Session) error {
+	const operation = "auth.action.create_session"
+
+	data, err := json.Marshal(session)
+	if err != nil {
+		return fmt.Errorf("%s: marshal session: %w", operation, err)
+	}
+
+	key := GetSessionKey(session.UserID, session.ID)
+	expiration := time.Until(session.ExpiresAt)
+	if expiration <= 0 {
+		return fmt.Errorf("%s: invalid session expiration", operation)
+	}
+
+	if err := a.redis.Set(ctx, key, string(data), expiration); err != nil {
+		return fmt.Errorf("%s: save to redis: %w", operation, err)
+	}
+
+	return nil
+}
+
+func (a *AuthAction) GetSession(ctx context.Context, userID, sessionID string) (*Session, error) {
+	const operation = "auth.action.get_session"
+
+	key := GetSessionKey(userID, sessionID)
+	data, err := a.redis.Get(ctx, key)
+	if err != nil {
+		return nil, fmt.Errorf("%s: get from redis: %w", operation, err)
+	}
+
+	var session Session
+	if err := json.Unmarshal([]byte(data), &session); err != nil {
+		return nil, fmt.Errorf("%s: unmarshal session: %w", operation, err)
+	}
+
+	return &session, nil
+}
+
+func (a *AuthAction) DeleteSession(ctx context.Context, userID, sessionID string) error {
+	const operation = "auth.action.delete_session"
+
+	key := GetSessionKey(userID, sessionID)
+	if err := a.redis.Del(ctx, key); err != nil {
+		return fmt.Errorf("%s: delete from redis: %w", operation, err)
 	}
 
 	return nil

@@ -13,6 +13,7 @@ type Config struct {
 	JWTSecretKey             string `mapstructure:"JWT_SECRET_KEY"`
 	JWTExpirationHours       int    `mapstructure:"JWT_EXPIRATION_HOURS"`
 	JWTRefreshExpirationDays int    `mapstructure:"JWT_REFRESH_EXPIRATION_DAYS"`
+	RedisURL                 string `mapstructure:"REDIS_URL"`
 	DatabaseURL              string `mapstructure:"DATABASE_URL"`
 	SMTPHost                 string `mapstructure:"SMTP_HOST"`
 	SMTPPort                 int    `mapstructure:"SMTP_PORT"`
@@ -29,6 +30,7 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("APP_PORT", "8080")
 	viper.SetDefault("JWT_EXPIRATION_HOURS", 24)
 	viper.SetDefault("JWT_REFRESH_EXPIRATION_DAYS", 14)
+	viper.SetDefault("REDIS_URL", "redis://localhost:6379")
 	_ = viper.ReadInConfig()
 
 	t := reflect.TypeOf(Config{})

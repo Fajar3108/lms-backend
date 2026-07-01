@@ -42,13 +42,14 @@ func (m *MockJWTManagerInterface) EXPECT() *MockJWTManagerInterfaceMockRecorder 
 }
 
 // GenerateAccessToken mocks base method.
-func (m *MockJWTManagerInterface) GenerateAccessToken(userID string) (string, time.Time, error) {
+func (m *MockJWTManagerInterface) GenerateAccessToken(userID string) (string, string, time.Time, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateAccessToken", userID)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(time.Time)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(time.Time)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // GenerateAccessToken indicates an expected call of GenerateAccessToken.

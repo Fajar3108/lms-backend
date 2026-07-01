@@ -12,4 +12,5 @@ type AuthServiceInterace interface {
 	Login(ctx context.Context, req *LoginRequest) (*user.LoginResource, error)
 	RefreshToken(ctx context.Context, req *RefreshTokenRequest) (*user.LoginResource, error)
 	GetProfile(ctx context.Context, userID string) (*user.UserResource, error)
+	Logout(ctx context.Context, userID, sessionID, refreshToken string) error
 }

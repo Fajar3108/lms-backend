@@ -13,4 +13,9 @@ type AuthActionInterface interface {
 	RotateRefreshToken(ctx context.Context, userID, oldToken, newToken string, newExpiresAt time.Time) error
 	FindRefreshToken(ctx context.Context, token string) (*user.RefreshToken, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID string) error
+	RevokeRefreshToken(ctx context.Context, token string) error
+
+	CreateSession(ctx context.Context, session *Session) error
+	GetSession(ctx context.Context, userID, sessionID string) (*Session, error)
+	DeleteSession(ctx context.Context, userID, sessionID string) error
 }

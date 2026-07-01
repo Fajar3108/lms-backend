@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	auth "github.com/fajar3108/lms-backend/internal/auth"
 	user "github.com/fajar3108/lms-backend/internal/user"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -57,6 +58,34 @@ func (mr *MockAuthActionInterfaceMockRecorder) CreateRefreshToken(ctx, userID, t
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRefreshToken", reflect.TypeOf((*MockAuthActionInterface)(nil).CreateRefreshToken), ctx, userID, token, expiresAt)
 }
 
+// CreateSession mocks base method.
+func (m *MockAuthActionInterface) CreateSession(ctx context.Context, session *auth.Session) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", ctx, session)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockAuthActionInterfaceMockRecorder) CreateSession(ctx, session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockAuthActionInterface)(nil).CreateSession), ctx, session)
+}
+
+// DeleteSession mocks base method.
+func (m *MockAuthActionInterface) DeleteSession(ctx context.Context, userID, sessionID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSession", ctx, userID, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSession indicates an expected call of DeleteSession.
+func (mr *MockAuthActionInterfaceMockRecorder) DeleteSession(ctx, userID, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSession", reflect.TypeOf((*MockAuthActionInterface)(nil).DeleteSession), ctx, userID, sessionID)
+}
+
 // FindRefreshToken mocks base method.
 func (m *MockAuthActionInterface) FindRefreshToken(ctx context.Context, token string) (*user.RefreshToken, error) {
 	m.ctrl.T.Helper()
@@ -72,6 +101,21 @@ func (mr *MockAuthActionInterfaceMockRecorder) FindRefreshToken(ctx, token any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRefreshToken", reflect.TypeOf((*MockAuthActionInterface)(nil).FindRefreshToken), ctx, token)
 }
 
+// GetSession mocks base method.
+func (m *MockAuthActionInterface) GetSession(ctx context.Context, userID, sessionID string) (*auth.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", ctx, userID, sessionID)
+	ret0, _ := ret[0].(*auth.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockAuthActionInterfaceMockRecorder) GetSession(ctx, userID, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockAuthActionInterface)(nil).GetSession), ctx, userID, sessionID)
+}
+
 // RevokeAllUserRefreshTokens mocks base method.
 func (m *MockAuthActionInterface) RevokeAllUserRefreshTokens(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
@@ -84,6 +128,20 @@ func (m *MockAuthActionInterface) RevokeAllUserRefreshTokens(ctx context.Context
 func (mr *MockAuthActionInterfaceMockRecorder) RevokeAllUserRefreshTokens(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeAllUserRefreshTokens", reflect.TypeOf((*MockAuthActionInterface)(nil).RevokeAllUserRefreshTokens), ctx, userID)
+}
+
+// RevokeRefreshToken mocks base method.
+func (m *MockAuthActionInterface) RevokeRefreshToken(ctx context.Context, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeRefreshToken", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeRefreshToken indicates an expected call of RevokeRefreshToken.
+func (mr *MockAuthActionInterfaceMockRecorder) RevokeRefreshToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeRefreshToken", reflect.TypeOf((*MockAuthActionInterface)(nil).RevokeRefreshToken), ctx, token)
 }
 
 // RotateRefreshToken mocks base method.

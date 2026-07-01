@@ -9,4 +9,5 @@ type AuthControllerInterface interface {
 	Login(ctx fiber.Ctx) error
 	Refresh(ctx fiber.Ctx) error
 	Me(ctx fiber.Ctx) error
+	Logout(ctx fiber.Ctx) error
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/fajar3108/lms-backend/internal/user"
 	app_error "github.com/fajar3108/lms-backend/pkg/app-error"
 	"github.com/fajar3108/lms-backend/pkg/helpers"
+	"github.com/fajar3108/lms-backend/pkg/token"
 	auth_mock "github.com/fajar3108/lms-backend/test/mock/auth"
 	token_mock "github.com/fajar3108/lms-backend/test/mock/pkg/token"
 	user_mock "github.com/fajar3108/lms-backend/test/mock/user"
@@ -129,12 +130,17 @@ func (s *AuthServiceTestSuite) TestLogin() {
 
 		s.jwtManagerMock.EXPECT().
 			GenerateAccessToken(expectedUser.ID).
-			Return(expectedAccessToken, expectedAccessTokenExp, nil).
+			Return(expectedAccessToken, "dummyJti", expectedAccessTokenExp, nil).
 			AnyTimes()
 
 		s.jwtManagerMock.EXPECT().
 			GenerateRefreshToken(expectedUser.ID).
 			Return(expectedRefreshToken, expectedRefreshTokenExp, nil).
+			AnyTimes()
+
+		s.authActionMock.EXPECT().
+			CreateSession(gomock.Any(), gomock.Any()).
+			Return(nil).
 			AnyTimes()
 
 		s.authActionMock.EXPECT().
@@ -235,5 +241,83 @@ func (s *AuthServiceTestSuite) TestGetProfile() {
 		s.Require().True(errors.As(err, &appErr))
 		s.Equal(app_error.KindNotFound, appErr.Kind)
 		s.ErrorIs(err, user.ErrUserNotFound)
+	})
+}
+
+func (s *AuthServiceTestSuite) TestRefreshToken() {
+	s.Run("Refresh token successfully", func() {
+		req := &auth.RefreshTokenRequest{
+			RefreshToken: "dummyRefreshToken",
+		}
+
+		expectedUser := &user.User{
+			ID:    "1",
+			Name:  "Test User",
+			Email: "test@example.com",
+		}
+
+		rt := &user.RefreshToken{
+			Token:     "dummyRefreshToken",
+			UserID:    "1",
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+			User:      *expectedUser,
+		}
+
+		claims := &token.UserClaims{
+			UserID: "1",
+		}
+
+		s.jwtManagerMock.EXPECT().
+			VerifyToken(req.RefreshToken).
+			Return(claims, nil).
+			AnyTimes()
+
+		s.authActionMock.EXPECT().
+			FindRefreshToken(gomock.Any(), req.RefreshToken).
+			Return(rt, nil).
+			AnyTimes()
+
+		s.jwtManagerMock.EXPECT().
+			GenerateAccessToken(expectedUser.ID).
+			Return("newAccessToken", "newJti", time.Now().Add(15*time.Minute), nil).
+			AnyTimes()
+
+		s.jwtManagerMock.EXPECT().
+			GenerateRefreshToken(expectedUser.ID).
+			Return("newRefreshToken", time.Now().Add(24*7*time.Hour), nil).
+			AnyTimes()
+
+		s.authActionMock.EXPECT().
+			CreateSession(gomock.Any(), gomock.Any()).
+			Return(nil).
+			AnyTimes()
+
+		s.authActionMock.EXPECT().
+			RotateRefreshToken(gomock.Any(), expectedUser.ID, "dummyRefreshToken", "newRefreshToken", gomock.Any()).
+			Return(nil).
+			AnyTimes()
+
+		res, err := s.authService.RefreshToken(context.Background(), req)
+		s.Require().NoError(err)
+		s.Require().NotNil(res)
+		s.Equal("newAccessToken", res.AccessToken)
+		s.Equal("newRefreshToken", res.RefreshToken)
+	})
+}
+
+func (s *AuthServiceTestSuite) TestLogout() {
+	s.Run("Logout successfully", func() {
+		s.authActionMock.EXPECT().
+			DeleteSession(gomock.Any(), "1", "session-123").
+			Return(nil).
+			AnyTimes()
+
+		s.authActionMock.EXPECT().
+			RevokeRefreshToken(gomock.Any(), "refresh-token-123").
+			Return(nil).
+			AnyTimes()
+
+		err := s.authService.Logout(context.Background(), "1", "session-123", "refresh-token-123")
+		s.Require().NoError(err)
 	})
 }

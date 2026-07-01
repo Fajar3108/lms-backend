@@ -79,3 +79,28 @@ func (ctrl *AuthController) Me(c fiber.Ctx) error {
 	resp := helpers.NewAPIResponse(http.StatusOK, "Profile details retrieved successfully").Success(res, nil, nil)
 	return c.Status(resp.StatusCode).JSON(resp)
 }
+
+func (ctrl *AuthController) Logout(c fiber.Ctx) error {
+	userID, ok := c.Locals("userID").(string)
+	if !ok || userID == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized session")
+	}
+
+	sessionID, ok := c.Locals("sessionID").(string)
+	if !ok || sessionID == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized session")
+	}
+
+	var req LogoutRequest
+	if err := validation.RequestBind(c, &req); err != nil {
+		return err
+	}
+
+	err := ctrl.service.Logout(c.Context(), userID, sessionID, req.RefreshToken)
+	if err != nil {
+		return err
+	}
+
+	resp := helpers.NewAPIResponse(http.StatusOK, "Logout successful")
+	return c.Status(resp.StatusCode).JSON(resp)
+}

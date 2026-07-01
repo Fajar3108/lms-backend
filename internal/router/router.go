@@ -5,10 +5,11 @@ import (
 	"github.com/fajar3108/lms-backend/pkg/token"
 	"github.com/fajar3108/lms-backend/pkg/validation"
 	"github.com/gofiber/fiber/v3"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, validator *validation.Validator) {
+func SetupRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, redisClient *redis.Client, validator *validation.Validator) {
 	jwtManager := token.NewJWTManager(cfg.JWTSecretKey, cfg.JWTExpirationHours, cfg.JWTRefreshExpirationDays)
 
 	api := app.Group("/api/v1")
@@ -19,5 +20,5 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, validator *val
 		})
 	})
 
-	AuthRouter(api, jwtManager, db, validator)
+	AuthRouter(api, jwtManager, db, redisClient, validator)
 }

@@ -30,6 +30,7 @@ func NewAuthService(authAction AuthActionInterface, userAction user.UserActionIn
 
 type tokenPair struct {
 	accessToken      string
+	accessTokenID    string
 	refreshToken     string
 	accessExpiresAt  time.Time
 	refreshExpiresAt time.Time
@@ -38,7 +39,7 @@ type tokenPair struct {
 func (s *AuthService) generateTokenPair(userID string) (*tokenPair, error) {
 	const operation = "auth.service.generate_token_pair"
 
-	accessToken, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(userID)
+	accessToken, accessTokenID, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: generate access token: %w", operation, err)
 	}
@@ -50,6 +51,7 @@ func (s *AuthService) generateTokenPair(userID string) (*tokenPair, error) {
 
 	return &tokenPair{
 		accessToken:      accessToken,
+		accessTokenID:    accessTokenID,
 		refreshToken:     refreshToken,
 		accessExpiresAt:  accessExpiresAt,
 		refreshExpiresAt: refreshExpiresAt,
@@ -107,6 +109,16 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*user.Login
 	tokens, err := s.generateTokenPair(foundUser.ID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", operation, err)
+	}
+
+	sess := &Session{
+		ID:        tokens.accessTokenID,
+		UserID:    foundUser.ID,
+		Token:     tokens.accessToken,
+		ExpiresAt: tokens.accessExpiresAt,
+	}
+	if err := s.authAction.CreateSession(ctx, sess); err != nil {
+		return nil, fmt.Errorf("%s: create session: %w", operation, err)
 	}
 
 	if _, err := s.authAction.CreateRefreshToken(ctx, foundUser.ID, tokens.refreshToken, tokens.refreshExpiresAt); err != nil {
@@ -191,6 +203,16 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *RefreshTokenRequest
 		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
 
+	sess := &Session{
+		ID:        tokens.accessTokenID,
+		UserID:    rt.UserID,
+		Token:     tokens.accessToken,
+		ExpiresAt: tokens.accessExpiresAt,
+	}
+	if err := s.authAction.CreateSession(ctx, sess); err != nil {
+		return nil, fmt.Errorf("%s: create session: %w", operation, err)
+	}
+
 	if err := s.authAction.RotateRefreshToken(ctx, rt.UserID, rt.Token, tokens.refreshToken, tokens.refreshExpiresAt); err != nil {
 		return nil, fmt.Errorf("%s: rotate refresh token: %w", operation, err)
 	}
@@ -218,4 +240,18 @@ func (s *AuthService) GetProfile(ctx context.Context, userID string) (*user.User
 
 	res := user.TransformUser(foundUser)
 	return &res, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, userID, sessionID, refreshToken string) error {
+	const operation = "auth.service.logout"
+
+	if err := s.authAction.DeleteSession(ctx, userID, sessionID); err != nil {
+		return fmt.Errorf("%s: delete session from redis: %w", operation, err)
+	}
+
+	if err := s.authAction.RevokeRefreshToken(ctx, refreshToken); err != nil {
+		return fmt.Errorf("%s: revoke refresh token in db: %w", operation, err)
+	}
+
+	return nil
 }
